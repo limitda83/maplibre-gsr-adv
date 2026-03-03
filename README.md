@@ -31,18 +31,22 @@ const image = await loadImage('/generated/wind_texture.png');
 const meta = await fetch('/generated/wind_meta.json').then((r) => r.json());
 
 const adv = new MapLibreGsrAdv({
-  map,
-  image,
-  imageUnscale: meta.imageUnscale,
-  bounds: meta.bbox,
-  speedRange: [0, 0.45],
-  layerOptions: {
-    numParticles: 9000,
-    maxAge: 80,
-    speedFactor: 200,
-    width: 1.9,
-    opacity: 0.9,
-    colorScale: 1.0,
+  required: {
+    map,
+    image,
+    bounds: meta.bbox,
+  },
+  common: {
+    imageUnscale: meta.imageUnscale,
+    speedRange: [0, 0.45],
+    layerOptions: {
+      numParticles: 9000,
+      maxAge: 80,
+      speedFactor: 200,
+      width: 1.9,
+      opacity: 0.9,
+      colorScale: 1.0,
+    },
   },
 });
 
@@ -65,11 +69,45 @@ Copy or override `src/ramp.css` to change the default colors.
 
 ## API
 
-- `new MapLibreGsrAdv({ map, image, imageUnscale, bounds, speedRange?, colorRamp?, layerOptions?, cssVarPrefix? })`
+- `new MapLibreGsrAdv({ required, common?, advanced? })`
+- `required`: `{ map, image, bounds }` (필수)
+- `common`: `{ imageUnscale?, speedRange?, colorRamp?, cssVarPrefix?, layerOptions? }`
+- `advanced`: `{ interleaved?, layerTuning? }`
 - `setSpeedRange([min, max])`
 - `setColorRamp([[stop, [r,g,b,a]], ...])`
 - `setLayerOptions({ ... })`
+- `setCommonOptions({ ... })`
+- `setAdvancedOptions({ ... })`
 - `destroy()`
+
+### Layer Tuning (advanced.layerTuning)
+
+`layerTuning`은 엔진 레벨 파라미터입니다. 기본 사용자에게는 `common.layerOptions`만 권장합니다.
+
+- `frameRate` (default: `30`)
+- `colorRampWidth` (default: `256`)
+- `speedGamma` (default: `0.75`)
+- `epsilon` (default: `1e-6`)
+- `zoomBase` (default: `7`)
+- `zoomChangeFactor` (default: `4`)
+- `mercatorMaxLat` (default: `85.051129`)
+
+### Backward Compatibility
+
+기존 flat 생성자 입력도 계속 동작합니다.
+
+```js
+new MapLibreGsrAdv({
+  map,
+  image,
+  bounds,
+  imageUnscale,
+  speedRange,
+  colorRamp,
+  layerOptions,
+  cssVarPrefix,
+});
+```
 
 ## Build
 

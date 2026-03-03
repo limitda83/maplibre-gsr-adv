@@ -2,8 +2,13 @@ import {LineLayer} from '@deck.gl/layers';
 import {isWebGL2, Buffer, Texture2D, Transform} from '@luma.gl/core';
 import updateTransformVs from 'deck.gl-particle/src/particle-layer-update-transform.vs.glsl';
 
-const FPS = 30;
-const COLOR_RAMP_WIDTH = 256;
+const DEFAULT_FRAME_RATE = 30;
+const DEFAULT_COLOR_RAMP_WIDTH = 256;
+const DEFAULT_SPEED_GAMMA = 0.75;
+const DEFAULT_EPSILON = 1e-6;
+const DEFAULT_ZOOM_BASE = 7;
+const DEFAULT_ZOOM_CHANGE_FACTOR = 4;
+const DEFAULT_MERCATOR_MAX_LAT = 85.051129;
 const DEFAULT_COLOR = [255, 255, 255, 255];
 const DEFAULT_RAMP = [
   [0.0, [94, 165, 252, 255]],
@@ -24,26 +29,13 @@ function wrapLongitude(lng, minLng) {
   return wrapped;
 }
 
-function isViewportGlobe() {
-  return false;
-}
-
-function getViewportGlobeCenter() {
-  return null;
-}
-
-function getViewportGlobeRadius() {
-  return null;
-}
-
-function getViewportBounds(viewport) {
+function getViewportBounds(viewport, mercatorMaxLat) {
   if (!viewport?.getBounds) return null;
-  if (isViewportGlobe(viewport)) return null;
   const bounds = viewport.getBounds();
   const minLng = bounds[2] - bounds[0] < 360 ? wrapLongitude(bounds[0]) : -180;
   const maxLng = bounds[2] - bounds[0] < 360 ? wrapLongitude(bounds[2], minLng) : 180;
-  const minLat = Math.max(bounds[1], -85.051129);
-  const maxLat = Math.min(bounds[3], 85.051129);
+  const minLat = Math.max(bounds[1], -mercatorMaxLat);
+  const maxLat = Math.min(bounds[3], mercatorMaxLat);
   return [minLng, minLat, maxLng, maxLat];
 }
 
@@ -55,25 +47,33 @@ const defaultProps = {
 
   numParticles: {type: 'number', min: 1, max: 1000000, value: 5000},
   maxAge: {type: 'number', min: 1, max: 255, value: 100},
-  speedFactor: {type: 'number', min: 0, max: 1, value: 1},
+  speedFactor: {type: 'number', min: 0, value: 200},
 
   color: {type: 'color', value: DEFAULT_COLOR},
   colorRamp: {type: 'array', value: DEFAULT_RAMP, compare: true},
-  speedRange: {type: 'array', value: [0, 30], compare: true},
+  speedRange: {type: 'array', value: [0, 0.45], compare: true},
   colorScale: {type: 'number', value: 1},
   width: {type: 'number', value: 1},
   animate: true,
 
   bounds: {type: 'array', value: [-180, -90, 180, 90], compare: true},
   wrapLongitude: true,
+
+  frameRate: {type: 'number', min: 1, value: DEFAULT_FRAME_RATE},
+  colorRampWidth: {type: 'number', min: 2, value: DEFAULT_COLOR_RAMP_WIDTH},
+  speedGamma: {type: 'number', min: 0.01, value: DEFAULT_SPEED_GAMMA},
+  epsilon: {type: 'number', min: 1e-12, value: DEFAULT_EPSILON},
+  zoomBase: {type: 'number', value: DEFAULT_ZOOM_BASE},
+  zoomChangeFactor: {type: 'number', value: DEFAULT_ZOOM_CHANGE_FACTOR},
+  mercatorMaxLat: {type: 'number', min: 1, max: 89.999999, value: DEFAULT_MERCATOR_MAX_LAT},
 };
 
-function createColorRampData(colorRamp) {
-  const data = new Uint8Array(COLOR_RAMP_WIDTH * 4);
+function createColorRampData(colorRamp, rampWidth) {
+  const data = new Uint8Array(rampWidth * 4);
   const sorted = [...colorRamp].sort((a, b) => a[0] - b[0]);
 
-  for (let i = 0; i < COLOR_RAMP_WIDTH; i++) {
-    const t = i / (COLOR_RAMP_WIDTH - 1);
+  for (let i = 0; i < rampWidth; i++) {
+    const t = i / (rampWidth - 1);
     let c = sorted[0][1];
 
     for (let j = 0; j < sorted.length - 1; j++) {
@@ -117,13 +117,15 @@ export class ParticleAdvLayer extends LineLayer {
           uniform vec2 advSpeedRange;
           uniform float advColorScale;
           uniform float advZoomCompensation;
+          uniform float advSpeedGamma;
+          uniform float advEpsilon;
         `,
         'vs:#main-start': `
           drop = float(instanceSourcePositions.xy == DROP_POSITION || instanceTargetPositions.xy == DROP_POSITION);
           float speed = distance(instanceTargetPositions.xy, instanceSourcePositions.xy) * advColorScale * advZoomCompensation;
-          float denom = max(advSpeedRange.y - advSpeedRange.x, 0.000001);
+          float denom = max(advSpeedRange.y - advSpeedRange.x, advEpsilon);
           float speedNorm = clamp((speed - advSpeedRange.x) / denom, 0.0, 1.0);
-          speedNorm = pow(speedNorm, 0.75);
+          speedNorm = pow(speedNorm, advSpeedGamma);
           vSpeedColor = texture2D(advColorRampTexture, vec2(speedNorm, 0.5));
         `,
         'fs:#decl': `
@@ -155,7 +157,7 @@ export class ParticleAdvLayer extends LineLayer {
   }
 
   updateState({props, oldProps, changeFlags}) {
-    const {numParticles, maxAge, color, width, colorRamp} = props;
+    const {numParticles, maxAge, color, width, colorRamp, colorRampWidth} = props;
     super.updateState({props, oldProps, changeFlags});
 
     if (!numParticles || !maxAge || !width) {
@@ -171,7 +173,8 @@ export class ParticleAdvLayer extends LineLayer {
       color[2] !== oldProps.color[2] ||
       color[3] !== oldProps.color[3] ||
       width !== oldProps.width ||
-      colorRamp !== oldProps.colorRamp
+      colorRamp !== oldProps.colorRamp ||
+      colorRampWidth !== oldProps.colorRampWidth
     ) {
       this._setupTransformFeedback();
     }
@@ -211,16 +214,18 @@ export class ParticleAdvLayer extends LineLayer {
     });
 
     const {viewport} = this.context;
-    const {colorScale, speedRange, speedFactor} = this.props;
-    const zoomCompensation = (2 ** ((viewport?.zoom ?? 0) + 7)) / Math.max(speedFactor || 1, 1e-6);
+    const {colorScale, speedRange, speedFactor, zoomBase, speedGamma, epsilon} = this.props;
+    const zoomCompensation = (2 ** ((viewport?.zoom ?? 0) + zoomBase)) / Math.max(speedFactor || 1, epsilon);
 
     super.draw({
       uniforms: {
         ...uniforms,
         advColorRampTexture: colorRampTexture,
-        advSpeedRange: speedRange || [0, 30],
+        advSpeedRange: speedRange || [0, 0.45],
         advColorScale: colorScale,
         advZoomCompensation: zoomCompensation,
+        advSpeedGamma: speedGamma,
+        advEpsilon: epsilon,
       },
     });
 
@@ -234,7 +239,7 @@ export class ParticleAdvLayer extends LineLayer {
     const {initialized} = this.state;
     if (initialized) this._deleteTransformFeedback();
 
-    const {numParticles, maxAge, color, width, colorRamp} = this.props;
+    const {numParticles, maxAge, color, width, colorRamp, colorRampWidth} = this.props;
 
     const numInstances = numParticles * maxAge;
     const numAgedInstances = numParticles * (maxAge - 1);
@@ -256,9 +261,9 @@ export class ParticleAdvLayer extends LineLayer {
     );
     const widths = new Float32Array([width]);
 
-    const rampData = createColorRampData(colorRamp || DEFAULT_RAMP);
+    const rampData = createColorRampData(colorRamp || DEFAULT_RAMP, colorRampWidth);
     const colorRampTexture = new Texture2D(gl, {
-      width: COLOR_RAMP_WIDTH,
+      width: colorRampWidth,
       height: 1,
       data: rampData,
       parameters: {
@@ -302,22 +307,20 @@ export class ParticleAdvLayer extends LineLayer {
     if (!initialized) return;
 
     const {viewport, timeline} = this.context;
-    const {image, imageUnscale, bounds, numParticles, speedFactor, maxAge} = this.props;
+    const {image, imageUnscale, bounds, numParticles, speedFactor, maxAge, zoomBase, zoomChangeFactor, mercatorMaxLat} = this.props;
     const {numAgedInstances, transform, previousViewportZoom, previousTime} = this.state;
     const time = timeline.getTime();
     if (!image || time === previousTime) return;
 
-    const viewportGlobe = isViewportGlobe(viewport);
-    const viewportGlobeCenter = getViewportGlobeCenter(viewport);
-    const viewportGlobeRadius = getViewportGlobeRadius(viewport);
-    const viewportBounds = getViewportBounds(viewport) || bounds;
-    const viewportZoomChangeFactor = 2 ** ((previousViewportZoom - viewport.zoom) * 4);
-    const currentSpeedFactor = speedFactor / 2 ** (viewport.zoom + 7);
+    const viewportBounds = getViewportBounds(viewport, mercatorMaxLat) || bounds;
+    const prevZoom = typeof previousViewportZoom === 'number' ? previousViewportZoom : viewport.zoom;
+    const viewportZoomChangeFactor = 2 ** ((prevZoom - viewport.zoom) * zoomChangeFactor);
+    const currentSpeedFactor = speedFactor / 2 ** (viewport.zoom + zoomBase);
 
     const uniforms = {
-      viewportGlobe,
-      viewportGlobeCenter: viewportGlobeCenter || [0, 0],
-      viewportGlobeRadius: viewportGlobeRadius || 0,
+      viewportGlobe: false,
+      viewportGlobeCenter: [0, 0],
+      viewportGlobeRadius: 0,
       viewportBounds: viewportBounds || bounds,
       viewportZoomChangeFactor: viewportZoomChangeFactor || 0,
       bitmapTexture: image,
@@ -385,12 +388,13 @@ export class ParticleAdvLayer extends LineLayer {
   requestStep() {
     const {stepRequested} = this.state;
     if (stepRequested) return;
+    const {frameRate} = this.props;
 
     this.state.stepRequested = true;
     setTimeout(() => {
       this.step();
       this.state.stepRequested = false;
-    }, 1000 / FPS);
+    }, 1000 / frameRate);
   }
 
   step() {
