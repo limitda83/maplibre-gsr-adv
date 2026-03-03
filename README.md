@@ -9,7 +9,8 @@ Particle advection layer library for MapLibre.
 ## Install
 
 ```bash
-npm install maplibre-gsr-adv @deck.gl/core @deck.gl/layers @deck.gl/mapbox @luma.gl/core maplibre-gl
+npm install git+https://github.com/limitda83/maplibre-gsr-adv.git \
+  @deck.gl/core @deck.gl/layers @deck.gl/mapbox @luma.gl/core maplibre-gl
 ```
 
 ## Quick Start
@@ -122,5 +123,3 @@ new MapLibreGsrAdv({
 npm install
 npm run build
 ```
-
-Publish the `dist/` artifacts to npm or GitHub Packages.

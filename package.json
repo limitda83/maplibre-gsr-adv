@@ -53,7 +53,8 @@
     "maplibre-gl": "^5.0.0"
   },
   "dependencies": {
-    "deck.gl-particle": "^1.1.0"
+    "deck.gl-particle": "^1.1.0",
+    "maplibre-gsr-adv": "github:limitda83/maplibre-gsr-adv"
   },
   "devDependencies": {
     "@deck.gl/core": "8.9.36",
