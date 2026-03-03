@@ -1,0 +1,41 @@
+[file]
+name = "myocean_rea_2023010112.tif"
+datetime = "2023-01-01T12:00:00Z"
+layer = "cur"
+level = "l00"
+
+[time]
+reference_time = "2023-01-01T12:00:00Z"
+interval_hours = 1
+forecast_hours = 72
+
+[layer]
+type = "vector"
+
+[bands]
+count = 2
+type = "Float32"
+nodata = "nan"
+
+[bands.band1]
+name = "uo"
+description = "uo component"
+unit = "m/s"
+
+[bands.band2]
+name = "vo"
+description = "vo component"
+unit = "m/s"
+
+[stats]
+bar_min = -1.7792290449142456
+bar_max = 1.8536943197250366
+magnitude_max = 2.1501271724700928
+
+[extent]
+epsg = 4326
+bbox = [110.0, 15.0, 165.0, 63.0]
+pixel_size_x = 0.0832072617246596
+pixel_size_y = -0.0831889081455806
+width = 661
+height = 577

@@ -1,3 +1,8 @@
+/*
+ * Portions of this file are adapted from deck.gl-particle:
+ * Copyright (c) 2021-2023 WeatherLayers.com
+ * SPDX-License-Identifier: MPL-2.0
+ */
 import {LineLayer} from '@deck.gl/layers';
 import {isWebGL2, Buffer, Texture2D, Transform} from '@luma.gl/core';
 import updateTransformVs from 'deck.gl-particle/src/particle-layer-update-transform.vs.glsl';

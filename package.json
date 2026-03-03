@@ -15,11 +15,15 @@
   "files": [
     "dist",
     "src/ramp.css",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_LICENSES.md",
+    "LICENSES"
   ],
   "scripts": {
     "build": "vite build",
     "dev": "vite",
+    "example": "vite example",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -29,7 +33,18 @@
     "advection",
     "wind"
   ],
-  "license": "MIT",
+  "author": "youngmin",
+  "license": "MIT AND MPL-2.0",
+  "private": false,
+  "sideEffects": false,
+  "bugs": {
+    "url": "https://github.com/limitda83/maplibre-gsr-adv/issues"
+  },
+  "homepage": "https://github.com/limitda83/maplibre-gsr-adv#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/limitda83/maplibre-gsr-adv.git"
+  },
   "peerDependencies": {
     "@deck.gl/core": "^8.9.0",
     "@deck.gl/layers": "^8.9.0",
@@ -45,6 +60,7 @@
     "@deck.gl/layers": "8.9.36",
     "@deck.gl/mapbox": "8.9.36",
     "@luma.gl/core": "^8.5.21",
+    "geotiff": "^2.1.3",
     "maplibre-gl": "^5.10.0",
     "vite": "^7.3.1"
   }

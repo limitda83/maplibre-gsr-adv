@@ -109,6 +109,13 @@ new MapLibreGsrAdv({
 });
 ```
 
+## License
+
+- Main project: MIT ([LICENSE](./LICENSE))
+- Third-party included/adapted code:
+  - `deck.gl-particle` (MPL-2.0)
+  - See [THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md)
+
 ## Build
 
 ```bash
