@@ -1,6 +1,6 @@
 # Example (GeoTIFF)
 
-`example/data/myocean_rea_2023010112.tif`를 읽어 `MapLibreGsrAdv`로 표출하는 샘플입니다.
+This sample reads `example/data/myocean_rea_2023010112.tif` and renders it with `MapLibreGsrAdv`.
 
 ## Run
 
@@ -10,6 +10,6 @@ npm install
 npm run example
 ```
 
-브라우저에서 표시되는 주소(기본 `http://localhost:5173/`)로 접속 후 `example/` 경로를 엽니다.
+Open the URL shown in your browser (default: `http://localhost:5173/`) and navigate to `example/`.
 
-예: `http://localhost:5173/example/`
+Example: `http://localhost:5173/example/`

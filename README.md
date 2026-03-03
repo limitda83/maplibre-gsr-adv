@@ -70,7 +70,7 @@ Copy or override `src/ramp.css` to change the default colors.
 ## API
 
 - `new MapLibreGsrAdv({ required, common?, advanced? })`
-- `required`: `{ map, image, bounds }` (필수)
+- `required`: `{ map, image, bounds }` (required)
 - `common`: `{ imageUnscale?, speedRange?, colorRamp?, cssVarPrefix?, layerOptions? }`
 - `advanced`: `{ interleaved?, layerTuning? }`
 - `setSpeedRange([min, max])`
@@ -82,7 +82,7 @@ Copy or override `src/ramp.css` to change the default colors.
 
 ### Layer Tuning (advanced.layerTuning)
 
-`layerTuning`은 엔진 레벨 파라미터입니다. 기본 사용자에게는 `common.layerOptions`만 권장합니다.
+`layerTuning` contains engine-level parameters. For most users, `common.layerOptions` is recommended.
 
 - `frameRate` (default: `30`)
 - `colorRampWidth` (default: `256`)
@@ -94,7 +94,7 @@ Copy or override `src/ramp.css` to change the default colors.
 
 ### Backward Compatibility
 
-기존 flat 생성자 입력도 계속 동작합니다.
+The existing flat constructor input remains supported.
 
 ```js
 new MapLibreGsrAdv({
