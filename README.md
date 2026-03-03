@@ -1,10 +1,10 @@
 # maplibre-gsr-adv
 
-MapLibre 기반 파티클 어드벡션 레이어 라이브러리입니다.
+Particle advection layer library for MapLibre.
 
-- `MapLibre + deck.gl` 조합
-- 유속 기반 컬러 램프
-- CSS 변수로 기본 컬러 팔레트 제어
+- `MapLibre + deck.gl` integration
+- Velocity-based color ramp
+- Default color palette controlled by CSS variables
 
 ## Install
 
@@ -46,14 +46,13 @@ const adv = new MapLibreGsrAdv({
   },
 });
 
-// 필요 시 런타임 제어
 adv.setSpeedRange([0, 0.35]);
 adv.setLayerOptions({numParticles: 12000});
 ```
 
 ## CSS Ramp Colors
 
-`src/ramp.css`를 복사하거나 오버라이드해서 기본 컬러를 바꿉니다.
+Copy or override `src/ramp.css` to change the default colors.
 
 ```css
 :root {
@@ -79,4 +78,4 @@ npm install
 npm run build
 ```
 
-`dist/` 산출물을 npm publish 또는 GitHub package로 배포하면 됩니다.
+Publish the `dist/` artifacts to npm or GitHub Packages.
